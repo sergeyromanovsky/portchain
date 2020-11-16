@@ -1,17 +1,30 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import App from './pages';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryCache, ReactQueryCacheProvider } from 'react-query';
+import { RecoilRoot } from 'recoil';
+import { defaultQueryFn } from './utils/fetch';
+
+const queryCache = new QueryCache({
+  defaultConfig: {
+    queries: {
+      queryFn: defaultQueryFn,
+      staleTime: 1000 * 3600 * 24,
+    },
+  },
+});
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <RecoilRoot>
+        <ReactQueryCacheProvider queryCache={queryCache}>
+          <App />
+        </ReactQueryCacheProvider>
+      </RecoilRoot>
+    </BrowserRouter>
   </React.StrictMode>,
   document.getElementById('root')
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();

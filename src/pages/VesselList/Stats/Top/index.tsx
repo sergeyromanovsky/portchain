@@ -13,32 +13,35 @@ function Top() {
     totalPortCalls,
   } = useRecoilValue(portState);
   return (
-    <Flex justifyBetween style={{ marginBottom: '1rem' }}>
-      {topByArrivals && (
-        <StyledUl>
-          <Typography>Top 5 Ports with most arrivals</Typography>
-          {topByArrivals.map(({ arrivalsCount, name }) => (
-            <Flex key={name}>
-              <StyledName>{name}:</StyledName>
-              <strong>{arrivalsCount}</strong>
-            </Flex>
-          ))}
-        </StyledUl>
-      )}
-      {topByFewestPortCalls && (
-        <StyledUl>
-          <Typography>Top 5 Ports with fewest port calls</Typography>
-          {topByFewestPortCalls.map(({ name, portCallsCount }) => (
-            <Flex key={name}>
-              <StyledName>{name}:</StyledName>
-              <strong>
-                {portCallsCount} of {totalPortCalls}
-              </strong>
-            </Flex>
-          ))}
-        </StyledUl>
-      )}
-    </Flex>
+    <div style={{ marginBottom: '4rem' }}>
+      <Typography variant='h4'>Tops</Typography>
+      <Flex justifyBetween style={{ marginBottom: '1rem' }}>
+        {topByArrivals && (
+          <StyledUl>
+            <Typography>Top 5 Ports with most arrivals</Typography>
+            {topByArrivals.map(({ arrivalsCount, name }) => (
+              <Flex key={name}>
+                <StyledName>{name}:</StyledName>
+                <strong>{arrivalsCount}</strong>
+              </Flex>
+            ))}
+          </StyledUl>
+        )}
+        {topByFewestPortCalls && (
+          <StyledUl>
+            <Typography>Top 5 Ports with fewest port calls</Typography>
+            {topByFewestPortCalls.map(({ name, portCallsCount }) => (
+              <Flex key={name}>
+                <StyledName>{name}:</StyledName>
+                <strong>
+                  {portCallsCount} of {totalPortCalls}
+                </strong>
+              </Flex>
+            ))}
+          </StyledUl>
+        )}
+      </Flex>
+    </div>
   );
 }
 

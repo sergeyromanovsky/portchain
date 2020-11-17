@@ -1,6 +1,4 @@
 import React from 'react';
-import Loader from 'components/Loader';
-
 import { portState } from 'atoms/port.atom';
 import { useRecoilValue } from 'recoil';
 import { Typography } from '@material-ui/core';
@@ -17,28 +15,31 @@ const titleMapping: Record<string, string> = {
 function Percantile() {
   const { percentile } = useRecoilValue(portState);
   if (!percentile) {
-    return <Loader />;
+    return null;
   }
 
   return (
-    <Flex justifyBetween flexWrap style={{ gap: '1rem' }}>
-      {Object.keys(percentile).map((key) => {
-        return (
-          <StyledUl key={key}>
-            <Typography>Percantile by {titleMapping[key]}</Typography>
-            {percentile[key][0].map((item: number, index: number) => (
-              <Flex key={key + index}>
-                <StyledName>{item}th:</StyledName>
-                <strong>
-                  {percentile[key][1][index].name ||
-                    percentile[key][1][index].vessel.name}
-                </strong>
-              </Flex>
-            ))}
-          </StyledUl>
-        );
-      })}
-    </Flex>
+    <>
+      <Typography variant='h4'>Percentiles</Typography>
+      <Flex justifyBetween flexWrap style={{ gap: '1rem' }}>
+        {Object.keys(percentile).map((key) => {
+          return (
+            <StyledUl key={key}>
+              <Typography>Percantile by {titleMapping[key]}</Typography>
+              {percentile[key][0].map((item: number, index: number) => (
+                <Flex key={key + index}>
+                  <StyledName>{item}th:</StyledName>
+                  <strong>
+                    {percentile[key][1][index].name ||
+                      percentile[key][1][index].vessel.name}
+                  </strong>
+                </Flex>
+              ))}
+            </StyledUl>
+          );
+        })}
+      </Flex>
+    </>
   );
 }
 

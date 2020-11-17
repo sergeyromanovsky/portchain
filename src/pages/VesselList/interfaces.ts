@@ -11,11 +11,11 @@ export interface IPortMetadata {
 }
 
 export interface LogEntry {
-  arrival: string;
+  arrival: string | null;
   createdDate: string;
-  departure: string;
+  departure: string | null;
   isOmitted: boolean | null;
-  updatedField: 'arrival' | 'departure';
+  updatedField: string;
 }
 export interface IPortCall {
   arrival: string;

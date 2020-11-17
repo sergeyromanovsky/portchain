@@ -1,4 +1,14 @@
-import { IVessel } from 'pages/VesselList';
+export interface IVessel {
+  imo: number;
+  name: string;
+}
+
+export interface IPortMetadata {
+  name: string;
+  arrivalsCount: number;
+  portCallsCount: number;
+  callDuration: number;
+}
 
 export interface LogEntry {
   arrival: string;

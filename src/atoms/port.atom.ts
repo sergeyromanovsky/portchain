@@ -1,10 +1,19 @@
+import { IPortMetadata } from 'pages/VesselList/interfaces';
 import { atom } from 'recoil';
-import { IPortMetadata } from 'pages/VesselList';
+import { ICallDelay } from 'utils';
 
+interface IPercantile {
+  byCallDuration: [number[], IPortMetadata[]];
+  byDelayInFourteenDays: [number[], ICallDelay[]];
+  byDelayInSevenDays: [number[], ICallDelay[]];
+  byDelayInTwoDays: [number[], ICallDelay[]];
+  [key: string]: any;
+}
 interface IState {
-  topByArrivals: null | IPortMetadata[];
-  topByFewestPortCalls: null | IPortMetadata[];
-  totalPortCalls: null | number;
+  topByArrivals: IPortMetadata[] | null;
+  topByFewestPortCalls: IPortMetadata[] | null;
+  percentile: IPercantile | null;
+  totalPortCalls: number | null;
 }
 export const portState = atom<IState>({
   key: 'portState',
@@ -12,5 +21,6 @@ export const portState = atom<IState>({
     topByArrivals: null,
     topByFewestPortCalls: null,
     totalPortCalls: null,
+    percentile: null,
   },
 });

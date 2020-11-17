@@ -1,7 +1,7 @@
 import React from 'react';
-import { Switch, Route } from 'react-router-dom';
 import VesselList from './VesselList';
-import VesselDetails from './VesselDetails';
+
+import { Switch, Route } from 'react-router-dom';
 import { Wrapper } from './styled';
 
 function App() {
@@ -10,9 +10,6 @@ function App() {
       <Switch>
         <Route path='/' exact>
           <VesselList />
-        </Route>
-        <Route path='/:id'>
-          <VesselDetails />
         </Route>
       </Switch>
     </Wrapper>

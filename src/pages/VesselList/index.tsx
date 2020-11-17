@@ -60,9 +60,6 @@ function Home() {
           })
         );
 
-        console.log('resultWithCallDelay', resultWithCallDelay[0]);
-        
-
         const portValues = Object.values(portsMeta);
 
         const topByArrivals = portValues

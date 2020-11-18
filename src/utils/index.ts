@@ -1,7 +1,12 @@
-import dayjs from 'dayjs';
+import dayjs, { QUnitType } from 'dayjs';
 import getPercentile from 'percentile';
 
-import { IPortCall, IVessel } from 'pages/VesselList/interfaces';
+import {
+  IPortCall,
+  IPortMetadata,
+  IVesselDetails,
+} from 'pages/VesselList/interfaces';
+import { CALCULATE_FOR_DAYS } from './constants';
 
 interface ICalculateCallDuration {
   departure: string;
@@ -20,13 +25,6 @@ interface ICalculateArrivals extends ICalculate {
 interface ICalculatePortCallDuration
   extends ICalculateCallDuration,
     ICalculate {}
-
-export interface ICallDelay {
-  vessel: IVessel;
-  delayInFourteenDays: number;
-  delayInSevenDays: number;
-  delayInTwoDays: number;
-}
 
 export const calculateCallDuration = ({
   departure,
@@ -61,39 +59,93 @@ export const calculatePercentile = <T>(
   return [interestedPercentile, percentile];
 };
 
+type ElementType<T extends ReadonlyArray<unknown>> = T extends ReadonlyArray<
+  infer ElementType
+>
+  ? ElementType
+  : never;
+
+export type IDaysDelay = ElementType<typeof CALCULATE_FOR_DAYS>;
+
 export const getCallDelay = (
   portCalls: IPortCall[],
-  initialState: ICallDelay
+  daysDelay = CALCULATE_FOR_DAYS,
+  unit: QUnitType = 'day'
 ) => {
-  return portCalls.reduce((acc, currItem) => {
-    let delayInFourteenDays = 0;
-    let delayInSevenDays = 0;
-    let delayInTwoDays = 0;
+  const result = portCalls.reduce((acc, currItem) => {
     currItem.logEntries.forEach(({ createdDate, arrival }) => {
       if (arrival) {
-        const diffInDays = dayjs(currItem.arrival).diff(createdDate, 'day');
-        // use seconds to get more precisely results
-        const diffInSeconds = dayjs(currItem.arrival).diff(
-          createdDate,
-          'second'
-        );
-        switch (diffInDays) {
-          case 14:
-            delayInFourteenDays += diffInSeconds;
-            break;
-          case 7:
-            delayInSevenDays += diffInSeconds;
-            break;
-          case 2:
-            delayInTwoDays += diffInSeconds;
-            break;
+        const diffInDays = dayjs(currItem.arrival).diff(createdDate, unit);
+        if ((daysDelay as string[]).includes(String(diffInDays))) {
+          // use seconds calculate percentile after
+          const diffInSeconds = dayjs(currItem.arrival).diff(
+            createdDate,
+            'second'
+          );
+
+          const stringified = String(diffInDays) as IDaysDelay;
+          acc[stringified] = (acc[stringified] || 0) + diffInSeconds;
         }
       }
     });
 
-    acc.delayInFourteenDays += delayInFourteenDays;
-    acc.delayInSevenDays += delayInSevenDays;
-    acc.delayInTwoDays += delayInTwoDays;
     return acc;
-  }, initialState);
+  }, {} as Record<IDaysDelay, number>);
+  return result;
+};
+
+interface ISort<T> {
+  arr: T[];
+  order?: 'asc' | 'desc';
+  sortExtractor?: (item: T) => any;
+  modifier?: (arr: T[]) => T[];
+}
+export const sort = <T>({
+  arr,
+  order = 'asc',
+  sortExtractor = (item) => item,
+  modifier,
+}: ISort<T>) => {
+  let result = arr.slice(0).sort((a: T, b: T) => {
+    switch (order) {
+      case 'asc':
+        return +sortExtractor(a) - +sortExtractor(b);
+      default:
+      case 'desc':
+        return +sortExtractor(b) - +sortExtractor(a);
+    }
+  });
+  if (modifier) {
+    result = modifier.call(null, result);
+  }
+  return result;
+};
+
+export const getPortMeta = (arr: IVesselDetails[]) => {
+  let totalCalls = 0;
+  const portsMeta = arr.reduce((acc, { portCalls }) => {
+    totalCalls += portCalls.length;
+    portCalls.forEach(({ port, arrival, departure, isOmitted }) => {
+      const portId = port.id;
+      acc[portId] = {
+        name: port.name,
+        arrivalsCount: calculateArrivalsCount({
+          acc,
+          isOmitted,
+          portId,
+        }),
+        portCallsCount: calculatePortCallsCount({ acc, portId }),
+        callDuration: calculatePortCallDuration({
+          acc,
+          portId,
+          arrival,
+          departure,
+        }),
+      };
+    });
+
+    return acc;
+  }, {} as Record<string, IPortMetadata>);
+
+  return { portsMeta, totalCalls };
 };

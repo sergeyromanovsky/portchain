@@ -1,127 +1,139 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Loader from 'components/Loader';
+import TopList from './TopList';
+import PercentileList from './PercentileList';
 
 import { useQuery } from 'react-query';
 import { defaultQueryFn as handleFetch } from 'utils/fetch';
-import { useSetRecoilState } from 'recoil';
-import { portState } from 'atoms/port.atom';
 import {
   IPortMetadata,
   IVessel,
   IVesselDetails,
 } from 'pages/VesselList/interfaces';
-import Stats from './Stats';
 import {
-  calculateArrivalsCount,
-  calculatePercentile,
-  calculatePortCallDuration,
-  calculatePortCallsCount,
   getCallDelay,
+  getPortMeta,
+  sort,
+  calculatePercentile,
+  IDaysDelay,
 } from 'utils';
+import { CALCULATE_FOR_DAYS } from 'utils/constants';
+
+export type ITop = {
+  title: string;
+  value: IPortMetadata[];
+  total?: number;
+};
+
+export type ICallDelayPercentile = Record<IDaysDelay | 'vessel', any>;
+
+export type IPercantile = ICallDelayPercentile | IPortMetadata;
+
+export type IPercantileList = {
+  title: string;
+  value: [number[], IPercantile[]];
+}[];
 
 function Home() {
-  const setPortState = useSetRecoilState(portState);
-  const { isLoading } = useQuery<IVessel[]>('vessels', {
+  const [topList, setTopList] = useState<ITop[] | null>(null);
+  const [percentileList, setPercentileList] = useState<IPercantileList | null>(
+    null
+  );
+  useQuery<IVessel[]>('vessels', {
     onSuccess: async (data) => {
       const promiseArr = data.map(({ imo }) => handleFetch(`schedule/${imo}`));
       const result: IVesselDetails[] = await Promise.all(promiseArr);
       if (result) {
-        let totalPortCalls = 0;
-        const portsMeta = result.reduce((acc, { portCalls }) => {
-          totalPortCalls += portCalls.length;
-          portCalls.forEach(({ port, arrival, departure, isOmitted }) => {
-            const portId = port.id;
-            acc[port.id] = {
-              name: port.name,
-              arrivalsCount: calculateArrivalsCount({
-                acc,
-                isOmitted,
-                portId,
-              }),
-              portCallsCount: calculatePortCallsCount({ acc, portId }),
-              callDuration: calculatePortCallDuration({
-                acc,
-                portId,
-                arrival,
-                departure,
-              }),
-            };
-          });
+        const { totalCalls, portsMeta } = getPortMeta(result);
 
-          return acc;
-        }, {} as Record<string, IPortMetadata>);
-
-        const resultWithCallDelay = result.map(({ portCalls, vessel }) =>
-          getCallDelay(portCalls, {
-            delayInFourteenDays: 0,
-            delayInSevenDays: 0,
-            delayInTwoDays: 0,
-            vessel,
-          })
-        );
+        const resultWithCallDelay = result.map(({ portCalls, ...rest }) => ({
+          ...getCallDelay(portCalls, CALCULATE_FOR_DAYS),
+          ...rest,
+        }));
 
         const portValues = Object.values(portsMeta);
 
-        const topByArrivals = portValues
-          .slice(0)
-          .sort((a, b) => b.arrivalsCount - a.arrivalsCount)
-          .slice(0, 5);
+        const topList = [
+          {
+            title: 'Top 5 By Arrivals',
+            value: sort({
+              arr: portValues,
+              modifier: (arr) => arr.slice(0, 5),
+              sortExtractor: ({ arrivalsCount }) => arrivalsCount,
+              order: 'desc',
+            }),
+          },
+          {
+            title: 'Top 5 By Fewest Port Calls',
+            value: sort({
+              arr: portValues,
+              modifier: (arr) => arr.slice(0, 5),
+              sortExtractor: ({ portCallsCount }) => portCallsCount,
+            }),
+            total: totalCalls,
+          },
+        ];
 
-        const topByFewestPortCalls = portValues
-          .slice(0)
-          .sort((a, b) => a.portCallsCount - b.portCallsCount)
-          .slice(0, 5);
+        const sortedByCallDuration = sort({
+          arr: portValues,
+          sortExtractor: ({ callDuration }) => callDuration,
+        });
 
-        const ascSortedByCallDuration = portValues
-          .slice(0)
-          .sort((a, b) => a.callDuration - b.callDuration);
+        const sortByDelayIn14Days = sort({
+          arr: resultWithCallDelay,
+          sortExtractor: (item) => item[14],
+        });
 
-        const ascSortedByDelayInFourteenDays = resultWithCallDelay
-          .slice(0)
-          .sort((a, b) => a.delayInFourteenDays - b.delayInFourteenDays);
+        const sortByDelayIn7Days = sort({
+          arr: resultWithCallDelay,
+          sortExtractor: (item) => item[7],
+        });
 
-        const ascSortedByDelayInSevenDays = resultWithCallDelay
-          .slice(0)
-          .sort((a, b) => a.delayInSevenDays - b.delayInSevenDays);
+        const sortByDelayIn2Days = sort({
+          arr: resultWithCallDelay,
+          sortExtractor: (item) => item[2],
+        });
 
-        const ascSortedByDelayInTwoDays = resultWithCallDelay
-          .slice(0)
-          .sort((a, b) => a.delayInTwoDays - b.delayInTwoDays);
-
-        setPortState({
-          topByArrivals,
-          topByFewestPortCalls,
-          totalPortCalls,
-          percentile: {
-            byCallDuration: calculatePercentile(
+        const percentileList = [
+          {
+            title: 'Percentile by Call Duration',
+            value: calculatePercentile(
               [5, 20, 50, 75, 90],
-              ascSortedByCallDuration
-            ),
-            byDelayInFourteenDays: calculatePercentile(
-              [5, 50, 80],
-              ascSortedByDelayInFourteenDays
-            ),
-            byDelayInSevenDays: calculatePercentile(
-              [5, 50, 80],
-              ascSortedByDelayInSevenDays
-            ),
-            byDelayInTwoDays: calculatePercentile(
-              [5, 50, 80],
-              ascSortedByDelayInTwoDays
+              sortedByCallDuration
             ),
           },
-        });
+          {
+            title: 'Percentile by Port Call Delay in 14 Days',
+            value: calculatePercentile([5, 50, 80], sortByDelayIn14Days),
+          },
+          {
+            title: 'Percentile by Port Call Delay in 7 Days',
+            value: calculatePercentile([5, 50, 80], sortByDelayIn7Days),
+          },
+          {
+            title: 'Percentile by Port Call Delay in 2 Days',
+            value: calculatePercentile([5, 50, 80], sortByDelayIn2Days),
+          },
+        ];
+
+        setTopList(topList);
+        setPercentileList(percentileList);
       } else {
         alert('Failed to fetch all vessel details');
       }
     },
   });
 
-  if (isLoading) {
+  if (!topList || !percentileList) {
     return <Loader />;
   }
 
-  return <Stats />;
+  return (
+    <>
+      <TopList list={topList!} />
+      <PercentileList list={percentileList!} />
+    </>
+  );
 }
 
 export default Home;

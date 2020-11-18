@@ -4,7 +4,6 @@ import './index.css';
 import App from './pages';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryCache, ReactQueryCacheProvider } from 'react-query';
-import { RecoilRoot } from 'recoil';
 import { defaultQueryFn } from './utils/fetch';
 
 const queryCache = new QueryCache({
@@ -19,11 +18,9 @@ const queryCache = new QueryCache({
 ReactDOM.render(
   <React.StrictMode>
     <BrowserRouter>
-      <RecoilRoot>
         <ReactQueryCacheProvider queryCache={queryCache}>
           <App />
         </ReactQueryCacheProvider>
-      </RecoilRoot>
     </BrowserRouter>
   </React.StrictMode>,
   document.getElementById('root')
